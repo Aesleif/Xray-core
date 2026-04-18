@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package xray.proxy.nidhogg;
+option go_package = "github.com/xtls/xray-core/proxy/nidhogg";
+
+message ClientConfig {
+  string server_address = 1;
+  uint32 server_port = 2;
+  string psk = 3;
+  string tunnel_path = 4;
+  string fingerprint = 5;
+  string shaping_mode = 6;
+  bool insecure = 7;
+}
+
+message ServerConfig {
+  string psk = 1;
+  string proxy_to = 2;
+  string tunnel_path = 3;
+  repeated string profile_targets = 4;
+  string profile_interval = 5;
+  int32 profile_min_snapshots = 6;
+  int32 telemetry_threshold = 7;
+}
