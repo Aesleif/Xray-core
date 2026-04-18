@@ -8,7 +8,6 @@ import (
 	"golang.org/x/net/http2"
 	"io"
 	"net/http"
-	"strings"
 
 	nidhogg_api "github.com/aesleif/nidhogg/pkg/nidhogg"
 	"github.com/xtls/xray-core/common"
@@ -92,32 +91,24 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 			return
 		}
 
-		// Read destination
+		// Read binary destination header
 		reader := bufio.NewReader(r.Body)
-		destStr, err := reader.ReadString('\n')
+		d, err := nidhogg_api.ReadDest(reader)
 		if err != nil {
 			errors.LogWarning(parentCtx, "nidhogg: failed to read destination: ", err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		destStr = strings.TrimSpace(destStr)
 
 		// Handle telemetry
-		if destStr == "_telemetry" {
+		if d.Command == nidhogg_api.CommandTelemetry {
 			s.handleTelemetry(w, reader)
 			return
 		}
 
-		// Parse network prefix: "udp:host:port", "tcp:host:port", or "host:port" (default tcp)
-		network := "tcp"
-		if strings.HasPrefix(destStr, "udp:") {
-			network = "udp"
-			destStr = destStr[4:]
-		} else if strings.HasPrefix(destStr, "tcp:") {
-			destStr = destStr[4:]
-		}
-
 		// Parse destination for Xray dispatcher
+		network := d.Network()
+		destStr := d.Addr()
 		dest, err := net.ParseDestination(network + ":" + destStr)
 		if err != nil {
 			errors.LogWarning(parentCtx, "nidhogg: invalid destination: ", destStr)
