@@ -8,6 +8,7 @@ import (
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/buf"
 	"github.com/xtls/xray-core/common/errors"
+	"github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/session"
 	"github.com/xtls/xray-core/common/task"
 	"github.com/xtls/xray-core/transport"
@@ -54,6 +55,9 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, _ internet.D
 	destination := ob.Target
 
 	dest := destination.NetAddr() // "host:port"
+	if destination.Network == net.Network_UDP {
+		dest = "udp:" + dest
+	}
 
 	conn, err := c.nidhoggClient.Dial(ctx, dest)
 	if err != nil {
@@ -65,12 +69,22 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, _ internet.D
 		", profile=", conn.Profile().Name,
 		", rtt=", conn.HandshakeRTT())
 
+	var requestWriter buf.Writer
+	var responseReader buf.Reader
+	if destination.Network == net.Network_UDP {
+		requestWriter = &PacketWriter{Writer: conn, Target: destination}
+		responseReader = &PacketReader{Reader: conn, Target: destination}
+	} else {
+		requestWriter = buf.NewWriter(conn)
+		responseReader = buf.NewReader(conn)
+	}
+
 	requestDone := func() error {
-		return buf.Copy(link.Reader, buf.NewWriter(conn))
+		return buf.Copy(link.Reader, requestWriter)
 	}
 
 	responseDone := func() error {
-		return buf.Copy(buf.NewReader(conn), link.Writer)
+		return buf.Copy(responseReader, link.Writer)
 	}
 
 	if err := task.Run(ctx, requestDone, task.OnSuccess(responseDone, task.Close(link.Writer))); err != nil {

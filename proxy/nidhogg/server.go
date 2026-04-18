@@ -50,7 +50,7 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 
 // Network implements proxy.Inbound.
 func (s *Server) Network() []net.Network {
-	return []net.Network{net.Network_TCP}
+	return []net.Network{net.Network_TCP, net.Network_UDP}
 }
 
 // Process implements proxy.Inbound. Each call handles one HTTP/2 connection
@@ -108,8 +108,17 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 			return
 		}
 
+		// Parse network prefix: "udp:host:port", "tcp:host:port", or "host:port" (default tcp)
+		network := "tcp"
+		if strings.HasPrefix(destStr, "udp:") {
+			network = "udp"
+			destStr = destStr[4:]
+		} else if strings.HasPrefix(destStr, "tcp:") {
+			destStr = destStr[4:]
+		}
+
 		// Parse destination for Xray dispatcher
-		dest, err := net.ParseDestination("tcp:" + destStr)
+		dest, err := net.ParseDestination(network + ":" + destStr)
 		if err != nil {
 			errors.LogWarning(parentCtx, "nidhogg: invalid destination: ", destStr)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -149,19 +158,29 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 		// Send inline profile
 		s.writeProfile(w, flusher)
 
-		errors.LogInfo(streamCtx, "nidhogg tunnel opened to ", destStr)
+		errors.LogInfo(streamCtx, "nidhogg tunnel opened to ", destStr, " (", network, ")")
 
 		// Relay: request body → link.Writer, link.Reader → response
 		streamCtx, cancel := context.WithCancel(streamCtx)
 		defer cancel()
 
+		var requestReader buf.Reader
+		var responseWriter buf.Writer
+		fw := &flushWriter{w: w, f: flusher}
+		if network == "udp" {
+			requestReader = &PacketReader{Reader: reader, Target: dest}
+			responseWriter = &PacketWriter{Writer: fw, Target: dest}
+		} else {
+			requestReader = buf.NewReader(reader)
+			responseWriter = buf.NewWriter(fw)
+		}
+
 		requestDone := func() error {
-			return buf.Copy(buf.NewReader(reader), link.Writer)
+			return buf.Copy(requestReader, link.Writer)
 		}
 
 		responseDone := func() error {
-			fw := &flushWriter{w: w, f: flusher}
-			return buf.Copy(link.Reader, buf.NewWriter(fw))
+			return buf.Copy(link.Reader, responseWriter)
 		}
 
 		if err := task.Run(streamCtx, task.OnSuccess(requestDone, task.Close(link.Writer)), responseDone); err != nil {
