@@ -3,6 +3,7 @@ package nidhogg
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aesleif/nidhogg/pkg/nidhogg"
 	"github.com/xtls/xray-core/common"
@@ -29,6 +30,14 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		return nil, errors.New("invalid shaping mode: ", config.ShapingMode).Base(err)
 	}
 
+	var idleTimeout time.Duration
+	if config.IdleTimeout != "" {
+		idleTimeout, err = time.ParseDuration(config.IdleTimeout)
+		if err != nil {
+			return nil, errors.New("invalid idle_timeout: ", config.IdleTimeout).Base(err)
+		}
+	}
+
 	c, err := nidhogg.NewClient(nidhogg.ClientConfig{
 		Server:             addr,
 		PSK:                config.Psk,
@@ -37,6 +46,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		ShapingMode:        mode,
 		Insecure:           config.Insecure,
 		ConnectionPoolSize: int(config.ConnectionPoolSize),
+		IdleTimeout:        idleTimeout,
 	})
 	if err != nil {
 		return nil, errors.New("failed to create nidhogg client").Base(err)

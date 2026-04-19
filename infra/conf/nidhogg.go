@@ -15,6 +15,7 @@ type NidhoggClientConfig struct {
 	ShapingMode        string `json:"shaping_mode"`
 	Insecure           bool   `json:"insecure"`
 	ConnectionPoolSize int32  `json:"connection_pool_size"`
+	IdleTimeout        string `json:"idle_timeout"`
 }
 
 // Build implements Buildable.
@@ -28,6 +29,7 @@ func (c *NidhoggClientConfig) Build() (proto.Message, error) {
 		ShapingMode:        c.ShapingMode,
 		Insecure:           c.Insecure,
 		ConnectionPoolSize: c.ConnectionPoolSize,
+		IdleTimeout:        c.IdleTimeout,
 	}, nil
 }
 

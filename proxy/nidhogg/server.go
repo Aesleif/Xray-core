@@ -52,7 +52,11 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 			MaxConcurrentStreams:         1000,
 			MaxUploadBufferPerStream:     8 << 20,
 			MaxUploadBufferPerConnection: 64 << 20,
-			MaxReadFrameSize:             1 << 20,
+			// 64 KiB frame size: per-stream scratch buffer scales with
+			// this on both sides. 1 MiB blew up to ~200MB at ~200 active
+			// streams. 64 KiB still gives 4× fewer frames vs the 16 KiB
+			// default for bulk transfers.
+			MaxReadFrameSize: 1 << 16,
 			// Keepalive: ping idle connections and close ones whose peer
 			// silently went away. Without this, half-dead clients (NAT
 			// timeout, RST lost) leak goroutines blocked on io.Copy.
