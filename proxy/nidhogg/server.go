@@ -109,6 +109,17 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 		}
 		clientVersion := binary.BigEndian.Uint32(clientVersionBuf[:])
 
+		// Read client's shaping mode. Server may only frame the relay
+		// when the client also frames; otherwise the framing mismatches
+		// and corrupts the entire stream.
+		var shapingBuf [1]byte
+		if _, err := io.ReadFull(reader, shapingBuf[:]); err != nil {
+			errors.LogWarning(parentCtx, "nidhogg: failed to read shaping mode: ", err)
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		clientShaping := nidhogg_api.DecodeShapingMode(shapingBuf[0]) != nidhogg_api.ShapingDisabled
+
 		// Handle telemetry
 		if d.Command == nidhogg_api.CommandTelemetry {
 			s.handleTelemetry(w, reader, clientVersion)
@@ -167,12 +178,25 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 		var requestReader buf.Reader
 		var responseWriter buf.Writer
 		fw := &flushWriter{w: w, f: flusher}
+
+		// Wrap the relay in shaping when both sides agreed to frame.
+		// UDP datagrams are length-prefixed at the application layer and
+		// must not pass through the byte-stream shaper, so only TCP gets
+		// the wrapper.
+		var (
+			relayReader io.Reader = reader
+			relayWriter io.Writer = fw
+		)
+		if network != "udp" {
+			relayReader, relayWriter = s.nidhoggServer.ShapeRelay(reader, fw, clientShaping)
+		}
+
 		if network == "udp" {
 			requestReader = &PacketReader{Reader: reader, Target: dest}
 			responseWriter = &PacketWriter{Writer: fw, Target: dest}
 		} else {
-			requestReader = buf.NewReader(reader)
-			responseWriter = buf.NewWriter(fw)
+			requestReader = buf.NewReader(relayReader)
+			responseWriter = buf.NewWriter(relayWriter)
 		}
 
 		requestDone := func() error {
