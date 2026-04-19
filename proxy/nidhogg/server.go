@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/http2"
 	"io"
 	"net/http"
+	"time"
 
 	nidhogg_api "github.com/aesleif/nidhogg/pkg/nidhogg"
 	"github.com/xtls/xray-core/common"
@@ -52,6 +53,11 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 			MaxUploadBufferPerStream:     8 << 20,
 			MaxUploadBufferPerConnection: 64 << 20,
 			MaxReadFrameSize:             1 << 20,
+			// Keepalive: ping idle connections and close ones whose peer
+			// silently went away. Without this, half-dead clients (NAT
+			// timeout, RST lost) leak goroutines blocked on io.Copy.
+			ReadIdleTimeout: 30 * time.Second,
+			PingTimeout:     15 * time.Second,
 		},
 	}, nil
 }
