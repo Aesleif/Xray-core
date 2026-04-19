@@ -11,6 +11,7 @@ message ClientConfig {
   string fingerprint = 5;
   string shaping_mode = 6;
   bool insecure = 7;
+  int32 connection_pool_size = 8;
 }
 
 message ServerConfig {

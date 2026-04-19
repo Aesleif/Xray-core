@@ -43,7 +43,16 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 
 	return &Server{
 		nidhoggServer: srv,
-		h2server:      &http2.Server{},
+		// Tune HTTP/2 for proxy workload: many concurrent streams, big
+		// upload buffers (clients pump TLS records of upstream traffic
+		// through us), and bigger DATA frames to amortize per-frame
+		// overhead.
+		h2server: &http2.Server{
+			MaxConcurrentStreams:         1000,
+			MaxUploadBufferPerStream:     8 << 20,
+			MaxUploadBufferPerConnection: 64 << 20,
+			MaxReadFrameSize:             1 << 20,
+		},
 	}, nil
 }
 

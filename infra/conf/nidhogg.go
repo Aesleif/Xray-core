@@ -7,25 +7,27 @@ import (
 
 // NidhoggClientConfig is the JSON config for nidhogg outbound.
 type NidhoggClientConfig struct {
-	Address     string `json:"address"`
-	Port        uint32 `json:"port"`
-	PSK         string `json:"psk"`
-	TunnelPath  string `json:"tunnel_path"`
-	Fingerprint string `json:"fingerprint"`
-	ShapingMode string `json:"shaping_mode"`
-	Insecure    bool   `json:"insecure"`
+	Address            string `json:"address"`
+	Port               uint32 `json:"port"`
+	PSK                string `json:"psk"`
+	TunnelPath         string `json:"tunnel_path"`
+	Fingerprint        string `json:"fingerprint"`
+	ShapingMode        string `json:"shaping_mode"`
+	Insecure           bool   `json:"insecure"`
+	ConnectionPoolSize int32  `json:"connection_pool_size"`
 }
 
 // Build implements Buildable.
 func (c *NidhoggClientConfig) Build() (proto.Message, error) {
 	return &nidhogg.ClientConfig{
-		ServerAddress: c.Address,
-		ServerPort:    c.Port,
-		Psk:           c.PSK,
-		TunnelPath:    c.TunnelPath,
-		Fingerprint:   c.Fingerprint,
-		ShapingMode:   c.ShapingMode,
-		Insecure:      c.Insecure,
+		ServerAddress:      c.Address,
+		ServerPort:         c.Port,
+		Psk:                c.PSK,
+		TunnelPath:         c.TunnelPath,
+		Fingerprint:        c.Fingerprint,
+		ShapingMode:        c.ShapingMode,
+		Insecure:           c.Insecure,
+		ConnectionPoolSize: c.ConnectionPoolSize,
 	}, nil
 }
 

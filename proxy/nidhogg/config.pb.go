@@ -22,16 +22,17 @@ const (
 )
 
 type ClientConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServerAddress string                 `protobuf:"bytes,1,opt,name=server_address,json=serverAddress,proto3" json:"server_address,omitempty"`
-	ServerPort    uint32                 `protobuf:"varint,2,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
-	Psk           string                 `protobuf:"bytes,3,opt,name=psk,proto3" json:"psk,omitempty"`
-	TunnelPath    string                 `protobuf:"bytes,4,opt,name=tunnel_path,json=tunnelPath,proto3" json:"tunnel_path,omitempty"`
-	Fingerprint   string                 `protobuf:"bytes,5,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
-	ShapingMode   string                 `protobuf:"bytes,6,opt,name=shaping_mode,json=shapingMode,proto3" json:"shaping_mode,omitempty"`
-	Insecure      bool                   `protobuf:"varint,7,opt,name=insecure,proto3" json:"insecure,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	ServerAddress      string                 `protobuf:"bytes,1,opt,name=server_address,json=serverAddress,proto3" json:"server_address,omitempty"`
+	ServerPort         uint32                 `protobuf:"varint,2,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
+	Psk                string                 `protobuf:"bytes,3,opt,name=psk,proto3" json:"psk,omitempty"`
+	TunnelPath         string                 `protobuf:"bytes,4,opt,name=tunnel_path,json=tunnelPath,proto3" json:"tunnel_path,omitempty"`
+	Fingerprint        string                 `protobuf:"bytes,5,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	ShapingMode        string                 `protobuf:"bytes,6,opt,name=shaping_mode,json=shapingMode,proto3" json:"shaping_mode,omitempty"`
+	Insecure           bool                   `protobuf:"varint,7,opt,name=insecure,proto3" json:"insecure,omitempty"`
+	ConnectionPoolSize int32                  `protobuf:"varint,8,opt,name=connection_pool_size,json=connectionPoolSize,proto3" json:"connection_pool_size,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -111,6 +112,13 @@ func (x *ClientConfig) GetInsecure() bool {
 		return x.Insecure
 	}
 	return false
+}
+
+func (x *ClientConfig) GetConnectionPoolSize() int32 {
+	if x != nil {
+		return x.ConnectionPoolSize
+	}
+	return 0
 }
 
 type ServerConfig struct {
@@ -209,7 +217,7 @@ var File_proxy_nidhogg_config_proto protoreflect.FileDescriptor
 
 const file_proxy_nidhogg_config_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproxy/nidhogg/config.proto\x12\x12xray.proxy.nidhogg\"\xea\x01\n" +
+	"\x1aproxy/nidhogg/config.proto\x12\x12xray.proxy.nidhogg\"\x9c\x02\n" +
 	"\fClientConfig\x12%\n" +
 	"\x0eserver_address\x18\x01 \x01(\tR\rserverAddress\x12\x1f\n" +
 	"\vserver_port\x18\x02 \x01(\rR\n" +
@@ -219,7 +227,8 @@ const file_proxy_nidhogg_config_proto_rawDesc = "" +
 	"tunnelPath\x12 \n" +
 	"\vfingerprint\x18\x05 \x01(\tR\vfingerprint\x12!\n" +
 	"\fshaping_mode\x18\x06 \x01(\tR\vshapingMode\x12\x1a\n" +
-	"\binsecure\x18\a \x01(\bR\binsecure\"\x95\x02\n" +
+	"\binsecure\x18\a \x01(\bR\binsecure\x120\n" +
+	"\x14connection_pool_size\x18\b \x01(\x05R\x12connectionPoolSize\"\x95\x02\n" +
 	"\fServerConfig\x12\x10\n" +
 	"\x03psk\x18\x01 \x01(\tR\x03psk\x12\x19\n" +
 	"\bproxy_to\x18\x02 \x01(\tR\aproxyTo\x12\x1f\n" +

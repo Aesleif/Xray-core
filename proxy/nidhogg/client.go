@@ -30,12 +30,13 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 	}
 
 	c, err := nidhogg.NewClient(nidhogg.ClientConfig{
-		Server:      addr,
-		PSK:         config.Psk,
-		TunnelPath:  config.TunnelPath,
-		Fingerprint: config.Fingerprint,
-		ShapingMode: mode,
-		Insecure:    config.Insecure,
+		Server:             addr,
+		PSK:                config.Psk,
+		TunnelPath:         config.TunnelPath,
+		Fingerprint:        config.Fingerprint,
+		ShapingMode:        mode,
+		Insecure:           config.Insecure,
+		ConnectionPoolSize: int(config.ConnectionPoolSize),
 	})
 	if err != nil {
 		return nil, errors.New("failed to create nidhogg client").Base(err)
