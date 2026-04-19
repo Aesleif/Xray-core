@@ -100,9 +100,18 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 			return
 		}
 
+		// Read client's known profile version
+		var clientVersionBuf [4]byte
+		if _, err := io.ReadFull(reader, clientVersionBuf[:]); err != nil {
+			errors.LogWarning(parentCtx, "nidhogg: failed to read profile version: ", err)
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		clientVersion := binary.BigEndian.Uint32(clientVersionBuf[:])
+
 		// Handle telemetry
 		if d.Command == nidhogg_api.CommandTelemetry {
-			s.handleTelemetry(w, reader)
+			s.handleTelemetry(w, reader, clientVersion)
 			return
 		}
 
@@ -147,7 +156,7 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 		flusher.Flush()
 
 		// Send inline profile
-		s.writeProfile(w, flusher)
+		s.writeProfile(w, flusher, clientVersion)
 
 		errors.LogInfo(streamCtx, "nidhogg tunnel opened to ", destStr, " (", network, ")")
 
@@ -181,22 +190,33 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 	})
 }
 
-// writeProfile sends the current traffic profile inline.
-func (s *Server) writeProfile(w http.ResponseWriter, flusher http.Flusher) {
-	profJSON := s.nidhoggServer.CurrentProfileJSON()
-	if profJSON != nil {
-		var sizeBuf [4]byte
-		binary.BigEndian.PutUint32(sizeBuf[:], uint32(len(profJSON)))
-		w.Write(sizeBuf[:])
-		w.Write(profJSON)
+// writeProfile sends the current traffic profile inline: [version:4B][size:4B][json?]
+// If clientVersion matches, size=0 and json is omitted.
+func (s *Server) writeProfile(w http.ResponseWriter, flusher http.Flusher, clientVersion uint32) {
+	profJSON, version := s.nidhoggServer.CurrentProfileJSON()
+
+	var versionBuf [4]byte
+	if profJSON == nil {
+		w.Write(versionBuf[:]) // version = 0
+		w.Write(versionBuf[:]) // size = 0
 	} else {
-		w.Write([]byte{0, 0, 0, 0})
+		binary.BigEndian.PutUint32(versionBuf[:], version)
+		w.Write(versionBuf[:])
+
+		if clientVersion == version {
+			w.Write([]byte{0, 0, 0, 0}) // size = 0, client already has it
+		} else {
+			var sizeBuf [4]byte
+			binary.BigEndian.PutUint32(sizeBuf[:], uint32(len(profJSON)))
+			w.Write(sizeBuf[:])
+			w.Write(profJSON)
+		}
 	}
 	flusher.Flush()
 }
 
 // handleTelemetry processes a telemetry report from a client.
-func (s *Server) handleTelemetry(w http.ResponseWriter, reader io.Reader) {
+func (s *Server) handleTelemetry(w http.ResponseWriter, reader io.Reader, clientVersion uint32) {
 	var report nidhogg_api.TelemetryReport
 	if err := json.NewDecoder(reader).Decode(&report); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -214,7 +234,7 @@ func (s *Server) handleTelemetry(w http.ResponseWriter, reader io.Reader) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("X-Nidhogg-Tunnel", "1")
 	w.WriteHeader(http.StatusOK)
-	s.writeProfile(w, flusher)
+	s.writeProfile(w, flusher, clientVersion)
 }
 
 // flushWriter wraps a ResponseWriter to flush after each write.
