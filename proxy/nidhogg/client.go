@@ -38,6 +38,14 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		}
 	}
 
+	var connMaxAge time.Duration
+	if config.ConnectionMaxAge != "" {
+		connMaxAge, err = time.ParseDuration(config.ConnectionMaxAge)
+		if err != nil {
+			return nil, errors.New("invalid connection_max_age: ", config.ConnectionMaxAge).Base(err)
+		}
+	}
+
 	c, err := nidhogg.NewClient(nidhogg.ClientConfig{
 		Server:             addr,
 		PSK:                config.Psk,
@@ -47,6 +55,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		Insecure:           config.Insecure,
 		ConnectionPoolSize: int(config.ConnectionPoolSize),
 		IdleTimeout:        idleTimeout,
+		ConnectionMaxAge:   connMaxAge,
 	})
 	if err != nil {
 		return nil, errors.New("failed to create nidhogg client").Base(err)

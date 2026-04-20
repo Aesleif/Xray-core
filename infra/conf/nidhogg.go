@@ -16,6 +16,7 @@ type NidhoggClientConfig struct {
 	Insecure           bool   `json:"insecure"`
 	ConnectionPoolSize int32  `json:"connection_pool_size"`
 	IdleTimeout        string `json:"idle_timeout"`
+	ConnectionMaxAge   string `json:"connection_max_age"`
 }
 
 // Build implements Buildable.
@@ -30,6 +31,7 @@ func (c *NidhoggClientConfig) Build() (proto.Message, error) {
 		Insecure:           c.Insecure,
 		ConnectionPoolSize: c.ConnectionPoolSize,
 		IdleTimeout:        c.IdleTimeout,
+		ConnectionMaxAge:   c.ConnectionMaxAge,
 	}, nil
 }
 
