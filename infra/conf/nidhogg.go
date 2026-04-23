@@ -7,9 +7,10 @@ import (
 
 // NidhoggClientConfig is the JSON config for nidhogg outbound.
 type NidhoggClientConfig struct {
-	Address            string `json:"address"`
-	Port               uint32 `json:"port"`
-	PSK                string `json:"psk"`
+	Address string `json:"address"`
+	Port    uint32 `json:"port"`
+	// PrivateKey is the base64-encoded 64-byte Ed25519 private key.
+	PrivateKey         string `json:"private_key"`
 	TunnelPath         string `json:"tunnel_path"`
 	Fingerprint        string `json:"fingerprint"`
 	ShapingMode        string `json:"shaping_mode"`
@@ -23,7 +24,7 @@ func (c *NidhoggClientConfig) Build() (proto.Message, error) {
 	return &nidhogg.ClientConfig{
 		ServerAddress:      c.Address,
 		ServerPort:         c.Port,
-		Psk:                c.PSK,
+		PrivateKey:         c.PrivateKey,
 		TunnelPath:         c.TunnelPath,
 		Fingerprint:        c.Fingerprint,
 		ShapingMode:        c.ShapingMode,
@@ -35,7 +36,9 @@ func (c *NidhoggClientConfig) Build() (proto.Message, error) {
 
 // NidhoggServerConfig is the JSON config for nidhogg inbound.
 type NidhoggServerConfig struct {
-	PSK                 string   `json:"psk"`
+	// AuthorizedKeys is a list of "<base64-pubkey>" or
+	// "<base64-pubkey> <name>" entries; names appear only in logs.
+	AuthorizedKeys      []string `json:"authorized_keys"`
 	ProxyTo             string   `json:"proxy_to"`
 	TunnelPath          string   `json:"tunnel_path"`
 	ProfileTargets      []string `json:"profile_targets"`
@@ -47,7 +50,7 @@ type NidhoggServerConfig struct {
 // Build implements Buildable.
 func (c *NidhoggServerConfig) Build() (proto.Message, error) {
 	return &nidhogg.ServerConfig{
-		Psk:                 c.PSK,
+		AuthorizedKeys:      c.AuthorizedKeys,
 		ProxyTo:             c.ProxyTo,
 		TunnelPath:          c.TunnelPath,
 		ProfileTargets:      c.ProfileTargets,

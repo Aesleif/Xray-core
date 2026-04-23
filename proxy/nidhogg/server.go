@@ -3,12 +3,17 @@ package nidhogg
 import (
 	"bufio"
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
-	"golang.org/x/net/http2"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
+
+	"golang.org/x/net/http2"
 
 	nidhogg_api "github.com/aesleif/nidhogg/pkg/nidhogg"
 	"github.com/xtls/xray-core/common"
@@ -29,8 +34,14 @@ type Server struct {
 
 // NewServer creates a nidhogg inbound handler from protobuf config.
 func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
+	keys, names, err := parseAuthorizedKeys(config.AuthorizedKeys)
+	if err != nil {
+		return nil, errors.New("authorized_keys").Base(err)
+	}
+
 	srv, err := nidhogg_api.NewServerEmbedded(nidhogg_api.ServerConfig{
-		PSK:                        config.Psk,
+		AuthorizedKeys:             keys,
+		AuthorizedKeyNames:         names,
 		ProfileTargets:             config.ProfileTargets,
 		TelemetryCriticalThreshold: int(config.TelemetryThreshold),
 		ProfileMinSnapshots:        int(config.ProfileMinSnapshots),
@@ -96,21 +107,25 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 			return
 		}
 
-		// Read and validate PSK handshake
-		handshakeBuf := make([]byte, nidhogg_api.HandshakeSize())
-		if _, err := io.ReadFull(r.Body, handshakeBuf); err != nil {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
-
-		ok, err := s.nidhoggServer.ValidateHandshake(handshakeBuf)
+		// Ed25519 challenge-response handshake. Must grab the flusher and
+		// commit response headers before issuing the nonce, so the client
+		// can read it while its request body is still being sent.
+		flusher, ok := w.(http.Flusher)
 		if !ok {
-			errors.LogDebug(parentCtx, "nidhogg: handshake rejected: ", err)
-			http.Error(w, "Forbidden", http.StatusForbidden)
+			errors.LogError(parentCtx, "nidhogg: ResponseWriter does not support Flusher")
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+		flusher.Flush()
+
+		if _, err := s.nidhoggServer.AuthenticateHandshake(w, r.Body, flusher); err != nil {
+			errors.LogDebug(parentCtx, "nidhogg: auth rejected: ", err)
 			return
 		}
 
-		// Read binary destination header
+		// Read binary destination header.
 		reader := bufio.NewReader(r.Body)
 		d, err := nidhogg_api.ReadDest(reader)
 		if err != nil {
@@ -170,21 +185,8 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 			return
 		}
 
-		// Start streaming response
-		flusher, ok := w.(http.Flusher)
-		if !ok {
-			errors.LogError(streamCtx, "nidhogg: ResponseWriter does not support Flusher")
-			common.Interrupt(link.Reader)
-			common.Interrupt(link.Writer)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.WriteHeader(http.StatusOK)
-		flusher.Flush()
-
-		// Send inline profile
+		// Response headers + challenge nonce already sent during
+		// AuthenticateHandshake. Append the inline profile now.
 		s.writeProfile(w, flusher, clientVersion)
 
 		errors.LogInfo(streamCtx, "nidhogg tunnel opened to ", destStr, " (", network, ")")
@@ -290,6 +292,35 @@ func (fw *flushWriter) Write(b []byte) (int, error) {
 		fw.f.Flush()
 	}
 	return n, err
+}
+
+// parseAuthorizedKeys decodes the authorized_keys config list into
+// parallel slices of pubkeys and optional operator-facing names.
+// Each entry is "<base64-pubkey>" or "<base64-pubkey> <name>".
+func parseAuthorizedKeys(lines []string) ([]ed25519.PublicKey, []string, error) {
+	keys := make([]ed25519.PublicKey, 0, len(lines))
+	names := make([]string, 0, len(lines))
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		encoded, name := line, ""
+		if idx := strings.IndexAny(line, " \t"); idx >= 0 {
+			encoded = line[:idx]
+			name = strings.TrimSpace(line[idx+1:])
+		}
+		raw, err := base64.StdEncoding.DecodeString(encoded)
+		if err != nil {
+			return nil, nil, fmt.Errorf("entry %d: base64: %w", i, err)
+		}
+		if len(raw) != ed25519.PublicKeySize {
+			return nil, nil, fmt.Errorf("entry %d: want %d bytes, got %d", i, ed25519.PublicKeySize, len(raw))
+		}
+		keys = append(keys, ed25519.PublicKey(raw))
+		names = append(names, name)
+	}
+	return keys, names, nil
 }
 
 func init() {

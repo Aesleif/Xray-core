@@ -22,16 +22,18 @@ const (
 )
 
 type ClientConfig struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	ServerAddress      string                 `protobuf:"bytes,1,opt,name=server_address,json=serverAddress,proto3" json:"server_address,omitempty"`
-	ServerPort         uint32                 `protobuf:"varint,2,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
-	Psk                string                 `protobuf:"bytes,3,opt,name=psk,proto3" json:"psk,omitempty"`
-	TunnelPath         string                 `protobuf:"bytes,4,opt,name=tunnel_path,json=tunnelPath,proto3" json:"tunnel_path,omitempty"`
-	Fingerprint        string                 `protobuf:"bytes,5,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
-	ShapingMode        string                 `protobuf:"bytes,6,opt,name=shaping_mode,json=shapingMode,proto3" json:"shaping_mode,omitempty"`
-	ConnectionPoolSize int32                  `protobuf:"varint,8,opt,name=connection_pool_size,json=connectionPoolSize,proto3" json:"connection_pool_size,omitempty"`
-	IdleTimeout        string                 `protobuf:"bytes,9,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
-	ConnectionMaxAge   string                 `protobuf:"bytes,10,opt,name=connection_max_age,json=connectionMaxAge,proto3" json:"connection_max_age,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServerAddress string                 `protobuf:"bytes,1,opt,name=server_address,json=serverAddress,proto3" json:"server_address,omitempty"`
+	ServerPort    uint32                 `protobuf:"varint,2,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
+	// private_key is the base64-encoded 64-byte Ed25519 private key
+	// (32-byte seed || 32-byte pubkey).
+	PrivateKey         string `protobuf:"bytes,3,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	TunnelPath         string `protobuf:"bytes,4,opt,name=tunnel_path,json=tunnelPath,proto3" json:"tunnel_path,omitempty"`
+	Fingerprint        string `protobuf:"bytes,5,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	ShapingMode        string `protobuf:"bytes,6,opt,name=shaping_mode,json=shapingMode,proto3" json:"shaping_mode,omitempty"`
+	ConnectionPoolSize int32  `protobuf:"varint,8,opt,name=connection_pool_size,json=connectionPoolSize,proto3" json:"connection_pool_size,omitempty"`
+	IdleTimeout        string `protobuf:"bytes,9,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
+	ConnectionMaxAge   string `protobuf:"bytes,10,opt,name=connection_max_age,json=connectionMaxAge,proto3" json:"connection_max_age,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -80,9 +82,9 @@ func (x *ClientConfig) GetServerPort() uint32 {
 	return 0
 }
 
-func (x *ClientConfig) GetPsk() string {
+func (x *ClientConfig) GetPrivateKey() string {
 	if x != nil {
-		return x.Psk
+		return x.PrivateKey
 	}
 	return ""
 }
@@ -130,14 +132,17 @@ func (x *ClientConfig) GetConnectionMaxAge() string {
 }
 
 type ServerConfig struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Psk                 string                 `protobuf:"bytes,1,opt,name=psk,proto3" json:"psk,omitempty"`
-	ProxyTo             string                 `protobuf:"bytes,2,opt,name=proxy_to,json=proxyTo,proto3" json:"proxy_to,omitempty"`
-	TunnelPath          string                 `protobuf:"bytes,3,opt,name=tunnel_path,json=tunnelPath,proto3" json:"tunnel_path,omitempty"`
-	ProfileTargets      []string               `protobuf:"bytes,4,rep,name=profile_targets,json=profileTargets,proto3" json:"profile_targets,omitempty"`
-	ProfileInterval     string                 `protobuf:"bytes,5,opt,name=profile_interval,json=profileInterval,proto3" json:"profile_interval,omitempty"`
-	ProfileMinSnapshots int32                  `protobuf:"varint,6,opt,name=profile_min_snapshots,json=profileMinSnapshots,proto3" json:"profile_min_snapshots,omitempty"`
-	TelemetryThreshold  int32                  `protobuf:"varint,7,opt,name=telemetry_threshold,json=telemetryThreshold,proto3" json:"telemetry_threshold,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// authorized_keys holds the set of client public keys allowed to
+	// open tunnels. Each entry is "<base64-pubkey>" or
+	// "<base64-pubkey> <name>" (the optional name is used only in logs).
+	AuthorizedKeys      []string `protobuf:"bytes,1,rep,name=authorized_keys,json=authorizedKeys,proto3" json:"authorized_keys,omitempty"`
+	ProxyTo             string   `protobuf:"bytes,2,opt,name=proxy_to,json=proxyTo,proto3" json:"proxy_to,omitempty"`
+	TunnelPath          string   `protobuf:"bytes,3,opt,name=tunnel_path,json=tunnelPath,proto3" json:"tunnel_path,omitempty"`
+	ProfileTargets      []string `protobuf:"bytes,4,rep,name=profile_targets,json=profileTargets,proto3" json:"profile_targets,omitempty"`
+	ProfileInterval     string   `protobuf:"bytes,5,opt,name=profile_interval,json=profileInterval,proto3" json:"profile_interval,omitempty"`
+	ProfileMinSnapshots int32    `protobuf:"varint,6,opt,name=profile_min_snapshots,json=profileMinSnapshots,proto3" json:"profile_min_snapshots,omitempty"`
+	TelemetryThreshold  int32    `protobuf:"varint,7,opt,name=telemetry_threshold,json=telemetryThreshold,proto3" json:"telemetry_threshold,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -172,11 +177,11 @@ func (*ServerConfig) Descriptor() ([]byte, []int) {
 	return file_proxy_nidhogg_config_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ServerConfig) GetPsk() string {
+func (x *ServerConfig) GetAuthorizedKeys() []string {
 	if x != nil {
-		return x.Psk
+		return x.AuthorizedKeys
 	}
-	return ""
+	return nil
 }
 
 func (x *ServerConfig) GetProxyTo() string {
@@ -225,12 +230,13 @@ var File_proxy_nidhogg_config_proto protoreflect.FileDescriptor
 
 const file_proxy_nidhogg_config_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproxy/nidhogg/config.proto\x12\x12xray.proxy.nidhogg\"\xd1\x02\n" +
+	"\x1aproxy/nidhogg/config.proto\x12\x12xray.proxy.nidhogg\"\xe0\x02\n" +
 	"\fClientConfig\x12%\n" +
 	"\x0eserver_address\x18\x01 \x01(\tR\rserverAddress\x12\x1f\n" +
 	"\vserver_port\x18\x02 \x01(\rR\n" +
-	"serverPort\x12\x10\n" +
-	"\x03psk\x18\x03 \x01(\tR\x03psk\x12\x1f\n" +
+	"serverPort\x12\x1f\n" +
+	"\vprivate_key\x18\x03 \x01(\tR\n" +
+	"privateKey\x12\x1f\n" +
 	"\vtunnel_path\x18\x04 \x01(\tR\n" +
 	"tunnelPath\x12 \n" +
 	"\vfingerprint\x18\x05 \x01(\tR\vfingerprint\x12!\n" +
@@ -238,9 +244,9 @@ const file_proxy_nidhogg_config_proto_rawDesc = "" +
 	"\x14connection_pool_size\x18\b \x01(\x05R\x12connectionPoolSize\x12!\n" +
 	"\fidle_timeout\x18\t \x01(\tR\vidleTimeout\x12,\n" +
 	"\x12connection_max_age\x18\n" +
-	" \x01(\tR\x10connectionMaxAge\"\x95\x02\n" +
-	"\fServerConfig\x12\x10\n" +
-	"\x03psk\x18\x01 \x01(\tR\x03psk\x12\x19\n" +
+	" \x01(\tR\x10connectionMaxAge\"\xac\x02\n" +
+	"\fServerConfig\x12'\n" +
+	"\x0fauthorized_keys\x18\x01 \x03(\tR\x0eauthorizedKeys\x12\x19\n" +
 	"\bproxy_to\x18\x02 \x01(\tR\aproxyTo\x12\x1f\n" +
 	"\vtunnel_path\x18\x03 \x01(\tR\n" +
 	"tunnelPath\x12'\n" +

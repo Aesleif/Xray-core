@@ -6,7 +6,9 @@ option go_package = "github.com/xtls/xray-core/proxy/nidhogg";
 message ClientConfig {
   string server_address = 1;
   uint32 server_port = 2;
-  string psk = 3;
+  // private_key is the base64-encoded 64-byte Ed25519 private key
+  // (32-byte seed || 32-byte pubkey).
+  string private_key = 3;
   string tunnel_path = 4;
   string fingerprint = 5;
   string shaping_mode = 6;
@@ -16,7 +18,10 @@ message ClientConfig {
 }
 
 message ServerConfig {
-  string psk = 1;
+  // authorized_keys holds the set of client public keys allowed to
+  // open tunnels. Each entry is "<base64-pubkey>" or
+  // "<base64-pubkey> <name>" (the optional name is used only in logs).
+  repeated string authorized_keys = 1;
   string proxy_to = 2;
   string tunnel_path = 3;
   repeated string profile_targets = 4;

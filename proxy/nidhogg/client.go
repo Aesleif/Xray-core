@@ -2,6 +2,8 @@ package nidhogg
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -46,9 +48,17 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		}
 	}
 
+	privRaw, err := base64.StdEncoding.DecodeString(config.PrivateKey)
+	if err != nil {
+		return nil, errors.New("private_key: base64 decode").Base(err)
+	}
+	if len(privRaw) != ed25519.PrivateKeySize {
+		return nil, errors.New(fmt.Sprintf("private_key: want %d bytes, got %d", ed25519.PrivateKeySize, len(privRaw)))
+	}
+
 	c, err := nidhogg.NewClient(nidhogg.ClientConfig{
 		Server:             addr,
-		PSK:                config.Psk,
+		PrivateKey:         ed25519.PrivateKey(privRaw),
 		TunnelPath:         config.TunnelPath,
 		Fingerprint:        config.Fingerprint,
 		ShapingMode:        mode,
