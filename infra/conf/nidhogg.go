@@ -13,7 +13,6 @@ type NidhoggClientConfig struct {
 	TunnelPath         string `json:"tunnel_path"`
 	Fingerprint        string `json:"fingerprint"`
 	ShapingMode        string `json:"shaping_mode"`
-	Insecure           bool   `json:"insecure"`
 	ConnectionPoolSize int32  `json:"connection_pool_size"`
 	IdleTimeout        string `json:"idle_timeout"`
 	ConnectionMaxAge   string `json:"connection_max_age"`
@@ -28,7 +27,6 @@ func (c *NidhoggClientConfig) Build() (proto.Message, error) {
 		TunnelPath:         c.TunnelPath,
 		Fingerprint:        c.Fingerprint,
 		ShapingMode:        c.ShapingMode,
-		Insecure:           c.Insecure,
 		ConnectionPoolSize: c.ConnectionPoolSize,
 		IdleTimeout:        c.IdleTimeout,
 		ConnectionMaxAge:   c.ConnectionMaxAge,

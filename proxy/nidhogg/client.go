@@ -52,7 +52,6 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		TunnelPath:         config.TunnelPath,
 		Fingerprint:        config.Fingerprint,
 		ShapingMode:        mode,
-		Insecure:           config.Insecure,
 		ConnectionPoolSize: int(config.ConnectionPoolSize),
 		IdleTimeout:        idleTimeout,
 		ConnectionMaxAge:   connMaxAge,

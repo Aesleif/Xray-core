@@ -29,7 +29,6 @@ type ClientConfig struct {
 	TunnelPath         string                 `protobuf:"bytes,4,opt,name=tunnel_path,json=tunnelPath,proto3" json:"tunnel_path,omitempty"`
 	Fingerprint        string                 `protobuf:"bytes,5,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
 	ShapingMode        string                 `protobuf:"bytes,6,opt,name=shaping_mode,json=shapingMode,proto3" json:"shaping_mode,omitempty"`
-	Insecure           bool                   `protobuf:"varint,7,opt,name=insecure,proto3" json:"insecure,omitempty"`
 	ConnectionPoolSize int32                  `protobuf:"varint,8,opt,name=connection_pool_size,json=connectionPoolSize,proto3" json:"connection_pool_size,omitempty"`
 	IdleTimeout        string                 `protobuf:"bytes,9,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
 	ConnectionMaxAge   string                 `protobuf:"bytes,10,opt,name=connection_max_age,json=connectionMaxAge,proto3" json:"connection_max_age,omitempty"`
@@ -107,13 +106,6 @@ func (x *ClientConfig) GetShapingMode() string {
 		return x.ShapingMode
 	}
 	return ""
-}
-
-func (x *ClientConfig) GetInsecure() bool {
-	if x != nil {
-		return x.Insecure
-	}
-	return false
 }
 
 func (x *ClientConfig) GetConnectionPoolSize() int32 {
@@ -233,7 +225,7 @@ var File_proxy_nidhogg_config_proto protoreflect.FileDescriptor
 
 const file_proxy_nidhogg_config_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproxy/nidhogg/config.proto\x12\x12xray.proxy.nidhogg\"\xed\x02\n" +
+	"\x1aproxy/nidhogg/config.proto\x12\x12xray.proxy.nidhogg\"\xd1\x02\n" +
 	"\fClientConfig\x12%\n" +
 	"\x0eserver_address\x18\x01 \x01(\tR\rserverAddress\x12\x1f\n" +
 	"\vserver_port\x18\x02 \x01(\rR\n" +
@@ -242,8 +234,7 @@ const file_proxy_nidhogg_config_proto_rawDesc = "" +
 	"\vtunnel_path\x18\x04 \x01(\tR\n" +
 	"tunnelPath\x12 \n" +
 	"\vfingerprint\x18\x05 \x01(\tR\vfingerprint\x12!\n" +
-	"\fshaping_mode\x18\x06 \x01(\tR\vshapingMode\x12\x1a\n" +
-	"\binsecure\x18\a \x01(\bR\binsecure\x120\n" +
+	"\fshaping_mode\x18\x06 \x01(\tR\vshapingMode\x120\n" +
 	"\x14connection_pool_size\x18\b \x01(\x05R\x12connectionPoolSize\x12!\n" +
 	"\fidle_timeout\x18\t \x01(\tR\vidleTimeout\x12,\n" +
 	"\x12connection_max_age\x18\n" +

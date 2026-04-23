@@ -181,7 +181,6 @@ func (s *Server) tunnelHandler(parentCtx context.Context, dispatcher routing.Dis
 		}
 
 		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("X-Nidhogg-Tunnel", "1")
 		w.WriteHeader(http.StatusOK)
 		flusher.Flush()
 
@@ -275,7 +274,6 @@ func (s *Server) handleTelemetry(w http.ResponseWriter, reader io.Reader, client
 	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("X-Nidhogg-Tunnel", "1")
 	w.WriteHeader(http.StatusOK)
 	s.writeProfile(w, flusher, clientVersion)
 }

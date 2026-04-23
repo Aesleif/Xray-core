@@ -10,7 +10,6 @@ message ClientConfig {
   string tunnel_path = 4;
   string fingerprint = 5;
   string shaping_mode = 6;
-  bool insecure = 7;
   int32 connection_pool_size = 8;
   string idle_timeout = 9;
   string connection_max_age = 10;
